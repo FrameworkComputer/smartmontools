@@ -856,15 +856,22 @@ int nvmePrintMain(nvme_device * device, const nvme_print_options & options)
 
     unsigned read_entries = nvme_read_error_log(device, error_log, want_entries, lpo_sup);
     if (!read_entries) {
-      jerr("Read %u entries from Error Information Log failed: %s\n\n",
-           want_entries, device->get_errmsg());
-      return retval | FAILSMART;
+      if (device->is_syscall_unsup()) {
+        jinf("Error Information Log not supported by device\n\n");
+      }
+      else {
+        jerr("Read %u entries from Error Information Log failed: %s\n\n",
+             want_entries, device->get_errmsg());
+        return retval | FAILSMART;
+      }
     }
-    if (read_entries < want_entries)
-      jerr("Read Error Information Log failed, %u entries missing: %s\n",
-           want_entries - read_entries, device->get_errmsg());
+    else {
+      if (read_entries < want_entries)
+        jerr("Read Error Information Log failed, %u entries missing: %s\n",
+             want_entries - read_entries, device->get_errmsg());
 
-    print_error_log(error_log, read_entries, max_entries);
+      print_error_log(error_log, read_entries, max_entries);
+    }
   }
 
   // Check for self-test support
