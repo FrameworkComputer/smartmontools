@@ -83,17 +83,23 @@ class sntasmedia_device
 {
 public:
   sntasmedia_device(smart_interface * intf, scsi_device * scsidev,
-                    const char * req_type, unsigned nsid, bool maybe_sat);
+                    const char * req_type, unsigned nsid, bool maybe_sat,
+                    uint64_t allowed_log_pages);
 
   virtual ~sntasmedia_device();
 
   virtual bool nvme_pass_through(const nvme_cmd_in & in, nvme_cmd_out & out) override;
+
+private:
+  uint64_t m_allowed_log_pages; // 0 = all allowed, else bitmask of allowed LIDs 0-63
 };
 
 sntasmedia_device::sntasmedia_device(smart_interface * intf, scsi_device * scsidev,
-                                     const char * req_type, unsigned nsid, bool maybe_sat)
+                                     const char * req_type, unsigned nsid, bool maybe_sat,
+                                     uint64_t allowed_log_pages)
 : smart_device(intf, scsidev->get_dev_name(), "sntasmedia", req_type),
-  nvme_or_sat_device(scsidev, nsid, maybe_sat)
+  nvme_or_sat_device(scsidev, nsid, maybe_sat),
+  m_allowed_log_pages(allowed_log_pages)
 {
   set_info().info_name = strprintf("%s [USB NVMe ASMedia]", scsidev->get_info_name());
 }
@@ -119,6 +125,11 @@ bool sntasmedia_device::nvme_pass_through(const nvme_cmd_in & in, nvme_cmd_out &
     case nvme_admin_get_log_page:
       if (!(in.nsid == nvme_broadcast_nsid || !in.nsid))
         return set_err(ENOSYS, "NVMe Get Log Page with NSID=0x%x not supported", in.nsid);
+      if (m_allowed_log_pages) {
+        unsigned lid = in.cdw10 & 0xFF;
+        if (lid > 63 || !(m_allowed_log_pages & (1ULL << lid)))
+          return set_err(ENOSYS, "NVMe Get Log Page 0x%02x not supported by device", lid);
+      }
       break;
     default:
       return set_err(ENOSYS, "NVMe admin command 0x%02x not supported", in.opcode);
@@ -448,9 +459,29 @@ nvme_device * smart_interface::get_snt_device(const char * type, scsi_device * s
   scsi_device_auto_ptr scsidev_holder(scsidev);
   nvme_device * sntdev = nullptr;
 
-  if (!strcmp(snt_type, "sntasmedia")) {
+  if (str_starts_with(snt_type, "sntasmedia")) {
     // No namespace supported
-    sntdev = new sntasmedia_device(this, scsidev, type, nvme_broadcast_nsid, maybe_sat);
+    // Parse optional allowed log page IDs: "sntasmedia[,0xLID[+0xLID...]]"
+    uint64_t allowed_log_pages = 0;
+    const char * p = snt_type + strlen("sntasmedia");
+    if (*p == ',') {
+      // Parse comma-separated LID specification with '+' separator
+      do {
+        unsigned lid = ~0;
+        int n = -1;
+        sscanf(++p, "0x%x%n", &lid, &n);
+        if (n < 1 || lid > 63)
+          return set_err_np(EINVAL, "Invalid NVMe log page id in '%s'", snt_type);
+        allowed_log_pages |= (1ULL << lid);
+        p += n;
+      } while (*p == '+');
+      if (*p)
+        return set_err_np(EINVAL, "Invalid NVMe log page id in '%s'", snt_type);
+    }
+    else if (*p)
+      return set_err_np(EINVAL, "Invalid sntasmedia device type '%s'", snt_type);
+    sntdev = new sntasmedia_device(this, scsidev, type, nvme_broadcast_nsid, maybe_sat,
+                                   allowed_log_pages);
   }
 
   else if (str_starts_with(snt_type, "sntjmicron")) {

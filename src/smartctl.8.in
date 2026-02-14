@@ -489,9 +489,18 @@ PL2571/2771/2773/2775 USB to SATA bridge.
 \- this device type is for SATA disks that are behind a SunplusIT USB to SATA
 bridge.
 .Sp
-.I sntasmedia[/sat]
+.I sntasmedia[,0xLID[+0xLID]][/sat]
 \- this device type is for NVMe disks that are behind an ASMedia USB to NVMe
 bridge.
+The optional parameter \*(Aq,0xLID\*(Aq restricts which NVMe Get Log Page
+commands are sent to the device.
+Multiple log page IDs (LIDs) can be specified with \*(Aq+\*(Aq as separator.
+If no LIDs are specified, all log pages are allowed (backward compatible).
+This is useful for USB devices with controllers (e.g.\& Phison) that hang
+when unsupported log pages are requested.
+.br
+Example: \*(Aq\-d sntasmedia,0x02\*(Aq allows only the SMART/Health
+Information log (LID 0x02).
 .br
 [NEW EXPERIMENTAL SMARTCTL 7.5 FEATURE]
 If the \*(Aq/sat\*(Aq suffix is specified and the NVMe Identify Controller

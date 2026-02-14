@@ -321,7 +321,7 @@ std::string smart_interface::get_valid_dev_types_str()
   // default
   std::string s =
     "ata, scsi[+TYPE], nvme[,NSID], sat[,auto][,N][+TYPE], usbasm1352r,N, usbcypress[,X], "
-    "usbjmicron[,p][,x][,N], usbprolific, usbsunplus[/sat], sntasmedia[/sat], "
+    "usbjmicron[,p][,x][,N], usbprolific, usbsunplus[/sat], sntasmedia[,0xLID[+0xLID]][/sat], "
     "sntjmicron[,NSID][/sat], sntrealtek[/sat], jmb39x[-q[2]],N[,sLBA][,force][+TYPE], "
     "jms56x,N[,sLBA][,force][+TYPE]";
   // append custom

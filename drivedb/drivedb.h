@@ -6893,7 +6893,7 @@ const drive_settings builtin_knowndrives[] = {
     "0x13fe:0x6500", // TeamGroup C212 USB flash drive
     "", // 0x0110
     "",
-    "-d sntasmedia" // limited info only
+    "-d sntasmedia,0x02" // limited info only, Phison supports only SMART log
   },
   // Super Top
   { "USB: Super Top generic enclosure; ",
@@ -7223,7 +7223,7 @@ const drive_settings builtin_knowndrives[] = {
     "0x1b1c:0x1a20", // emulates NVMe information, some SMART values are bogus.
     "",
     "",
-    "-d sntasmedia"
+    "-d sntasmedia,0x02" // Phison supports only SMART log
   },
   // SunplusIT
   { "USB: ; SunplusIT",
@@ -7390,7 +7390,7 @@ const drive_settings builtin_knowndrives[] = {
     "0x32ac:0x0005",
     "", // 0x0110
     "",
-    "-d sntasmedia"
+    "-d sntasmedia,0x02" // Phison supports only SMART log
   },
   // Power Quotient International
   { "USB: PQI bridge; ",
